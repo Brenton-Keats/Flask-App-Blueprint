@@ -1,0 +1,45 @@
+version: '3.3'
+services:
+  database:
+    container_name: blueprint_db
+    image: "postgres:13"
+    restart: always
+    environment:
+      - PUID=1000
+      - PGID=1000
+    env_file:
+      - ./docker-envs/all.env
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+    volumes:
+      - database-data:/var/lib/postgresql/data/
+      - ./src/db-connect.sh:/db-connect.sh
+    networks:
+      - flask-app-blueprint
+  webapp:
+    depends_on:
+      - database
+    container_name: blueprint_flask
+    build: .
+    image: img_blueprint-api
+    restart: always
+    env_file:
+      - ./docker-envs/all.env
+      - ./docker-envs/dev.env
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+    ports:
+      - '5000:5000'
+    volumes:
+      - ./src:/src
+    networks:
+      - flask-app-blueprint
+
+volumes:
+  database-data:
+networks:
+  flask-app-blueprint:
