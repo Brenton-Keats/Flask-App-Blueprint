@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Flask blueprint application</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/stylesheet.css') }}" rel="stylesheet">
+
+    {% block extra_head_content %}{% endblock %}
+
+</head>
+
+<body>
+    {% include 'fragments/topbar.jinja2' %}
+    {% block content %}
+    <div class="p-3">
+        <h1>Welcome to the homepage of the Flask Blueprint application.</h1>
+        <p>
+            To view the API documentation, navigate to
+            <a href="{{ url_for('api.doc') }}">{{ url_for('api.doc') }}</a>.
+        </p>
+        <p>
+            To customise this homepage, update the <em>index.jinja2</em> file in the <em>templates</em> directory.
+        </p>
+    </div>
+    {% endblock content%}
+
+    <!-- Placed at end of page to load content faster -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+        crossorigin="anonymous"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    {% block extra_end_content %}{% endblock %}
+</body>
+
+</html>

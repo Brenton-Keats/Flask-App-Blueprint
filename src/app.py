@@ -9,6 +9,7 @@ from flask import Flask
 # Project-level modules
 from api import autoconfigure as get_api
 from database import setup_db
+from routes import root_bp as routes_bp
 
 
 def create_app() -> Flask:
@@ -18,9 +19,16 @@ def create_app() -> Flask:
         Flask: Application ready to be used.
     """
 
-    app = Flask(__name__)
+    app = Flask(__name__, template_folder="frontend/templates", static_folder="frontend/static")
+
+    # Configure the DB
     setup_db(app)
+
+    # Generate the API, and register it.
     app.register_blueprint(get_api())
+
+    # Register the frontend routes
+    app.register_blueprint(routes_bp)
 
     return app
 
