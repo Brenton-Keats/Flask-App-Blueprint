@@ -29,6 +29,7 @@ from werkzeug.exceptions import HTTPException, BadRequest, NotFound, InternalSer
 from auth import require_auth
 from constants import MAX_PAGE_SIZE, AUTH_SUPER, AUTH_EDITOR, AUTH_VIEWER
 from database import db, session_manager, models
+from database.views import generic_search
 from util import ApiLink, ApiExposed, CustomApiQuery, SqlMany
 
 # Map python types to Flask API types for rendering models.
@@ -162,7 +163,7 @@ def handle_paginated_request(model: ApiExposed, record_format_func: Callable, **
     if _query is not None:
         # Get a list of all the model attributes to filter against
         columns = [getattr(model, col) for col in model.__dataclass_fields__.keys()]
-        query = db.generic_search(query, columns, _query)
+        query = generic_search(query, columns, _query)
     query = query.order_by(getattr(model, _sortby))
     results = query.paginate(page=_page, per_page=_pagelength)
 

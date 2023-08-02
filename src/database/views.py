@@ -1,4 +1,7 @@
+"""Define all non-core database methods i.e. queries, views, helper methods.
 
+Author: Brenton Keats, 2023
+"""
 
 from flask import current_app as app
 from flask_sqlalchemy import BaseQuery
