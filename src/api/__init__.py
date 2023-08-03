@@ -5,6 +5,7 @@ Author: Brenton Keats, 2023
 
 # Builtins
 from inspect import isclass
+from typing import Tuple
 
 # Libraries
 from flask import Blueprint
@@ -14,6 +15,7 @@ from werkzeug.exceptions import HTTPException
 # Project-level modules
 from constants import AUTH_TOKEN_NAME
 from .core import _api_routes as __api_routes, handle_bad_request as __handle_bad_request
+from .session_manager import session_ns
 
 
 def generate_endpoints_for_models(module: object, api: Api):
@@ -30,7 +32,7 @@ def generate_endpoints_for_models(module: object, api: Api):
             api.add_namespace(__api_routes(cls))
 
 
-def api_factory(*, authorizations: dict = None, bp_kwargs: dict = None, api_kwargs: dict = {}) -> Blueprint:
+def api_factory(*, authorizations: dict = None, bp_kwargs: dict = None, api_kwargs: dict = {}) -> Tuple[Blueprint, Api]:
     """Create API with default values and attach it to a Blueprint (returned).
 
     Args:
@@ -39,7 +41,7 @@ def api_factory(*, authorizations: dict = None, bp_kwargs: dict = None, api_kwar
         api_kwargs (dict, optional): Additional/override values to initialise the `Api` with. Defaults to {}.
 
     Returns:
-        Blueprint: Flask Blueprint with registered `Api` instance attached.
+        Tuple[Blueprint, Api]: Flask Blueprint with registered `Api` instance attached, and the Api instance.
     """
 
     # Set defaults
@@ -86,4 +88,6 @@ def autoconfigure() -> Blueprint:
     from database import models
     bp, api = api_factory()
     generate_endpoints_for_models(models, api)
+    api.add_namespace(session_ns)
+
     return bp

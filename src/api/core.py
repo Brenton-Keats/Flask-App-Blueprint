@@ -31,6 +31,7 @@ from constants import MAX_PAGE_SIZE, AUTH_SUPER, AUTH_EDITOR, AUTH_VIEWER
 from database import db, session_manager, models
 from database.views import generic_search
 from util import ApiLink, ApiExposed, CustomApiQuery, SqlMany
+from .models import generic_api_models
 
 # Map python types to Flask API types for rendering models.
 _pytype_to_flasktype = {
@@ -44,39 +45,6 @@ _pytype_to_flasktype = {
     ApiLink: fields.List(fields.Nested(ApiLink._flask_model))  # List representation of class
 }
 # Configure general API models (subsequent definitions may inherit from previous ones)
-generic_api_models = {
-    "_links": ApiLink._flask_model,
-    "record-base": Model("record-base", {
-        "id": fields.Integer(example=0),
-        "_links": fields.List(fields.Nested(ApiLink._flask_model))
-    }),
-    "info-base": Model("info-base", {
-        "code": fields.Integer(example=200),
-        "message": fields.String(example="Human-facing description of action result"),
-        "session": fields.String(example="DB session ID for atomicity")
-    }),
-    "pagination": Model("pagination", {
-        "page": fields.Integer(example=1),
-        "total_pages": fields.Integer(example=1),
-        "total_results": fields.Integer(example=10),
-    }),
-}
-generic_api_models = {
-    **generic_api_models,
-    "base": Model("base", {
-        "result": fields.Nested(generic_api_models['record-base']),
-        "success": fields.Boolean(True),
-        "info": fields.Nested(generic_api_models['info-base']),
-    }),
-    "paginated-info": generic_api_models['info-base'].clone('paginated-info', generic_api_models['pagination']),
-}
-generic_api_models = {
-    **generic_api_models,
-    'base-paginated': generic_api_models['base'].clone('base-paginated', {
-        'result': fields.List(fields.Nested(generic_api_models['record-base'])),
-        'info': fields.Nested(generic_api_models['paginated-info'])
-    })
-}
 
 
 def handle_bad_request(exc: HTTPException) -> Tuple[dict, int]:
