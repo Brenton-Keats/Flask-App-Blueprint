@@ -4,17 +4,27 @@
  * Author: Brenton Keats, 2023
  */
 
+export { _ApiCore, Api }
+
 /**
  * Base class for implementing API interactions.
  */
 class _ApiCore {
+    #session;
+
     /**
      * Set up the core functionality of this API module.
      * @param {String} path Root URL for all enclosed endpoints.
+     * @param {_SessionManager} sessionManager _SessionManager instance to use for session. 
      */
-    constructor (path) {
+    constructor (path, sessionManager=null) {
         this.path = path
         this.actions = {"custom": `${path}/...`}
+        this.#session = sessionManager
+    }
+
+    _getSessionManager() {
+        return this.#session
     }
 
     /**
@@ -74,7 +84,7 @@ class _ApiCore {
         }
         const sessionIsTemporary = !Boolean(session)
         if (!session) {
-            let sessionResponse = await this.session.get()
+            let sessionResponse = await this.#session.get()
             session = sessionResponse.result.session_id
         }
         args._session = session
@@ -100,11 +110,11 @@ class _ApiCore {
             console.log(sessionIsTemporary)
             if (sessionIsTemporary) {
                 console.log('committing session')
-                this.session.save(session)
+                this.#session.save(session)
             }
         } else {
             if (sessionIsTemporary) {
-                this.session.rollback(session, true)
+                this.#session.rollback(session, true)
             }
         }
         return data
@@ -154,10 +164,11 @@ class ApiGeneralCollection extends _ApiCore {
     /**
      * Declare a generic collection of API endpoints. This contains methods for CRUD and bulk-read actions.
      * @param {String} path Root URL for all enclosed endpoints.
+     * @param {_SessionManager} sessionManager _SessionManager instance to use for session. 
      * @param {Number} defaultPageLength Default page size for any paginated queries.
      */
-    constructor (path, defaultPageLength=100) {
-        super(path)
+    constructor (path, sessionManager, defaultPageLength=100) {
+        super(path, sessionManager)
         this.defaultPageLength = defaultPageLength
         this.actions = {
             ...this.actions,
@@ -288,8 +299,10 @@ class Api extends _ApiCore {
      * @param {String} path Base URL for all API endpoints.
      */
     constructor(path="/api") {
-        super(path)
-        this.addModule("session", new _SessionManager(path + "/util"))
+        let session = new _SessionManager(path + "/session")
+        super(path, session)
+        this.session = session
+
     }
 
     /**
@@ -302,7 +315,7 @@ class Api extends _ApiCore {
             urlPath = "/" + moduleName
         };
         urlPath = this.path + encodeURI(urlPath);
-        const newModule = new ApiGeneralCollection(urlPath);
+        const newModule = new ApiGeneralCollection(urlPath, this._getSessionManager());
         this.addModule(moduleName, newModule);
     }
 }
@@ -319,9 +332,9 @@ class _SessionManager extends _ApiCore {
         super(path)
         this.actions = {
             ...this.actions,
-            "get": `${this.path}/start_session`,
-            "save": `${this.path}/save_session`,
-            "rollback": `${this.path}/rollback_session`,
+            "get": `${this.path}/new`,
+            "save": `${this.path}/save/{session}`,
+            "rollback": `${this.path}/rollback/{session}`,
         }
     }
 
@@ -330,8 +343,8 @@ class _SessionManager extends _ApiCore {
      * @returns {Object} API response outlining a new DB session.
      */
     async get() {
-        const url = this.path + "/start_session"
-        return await this._basicFetch(url, 'GET').json()
+        const url = this.path + "/new"
+        return await this._basicFetch(url, 'GET').then(r => r.json())
     }
 
     /**
@@ -341,8 +354,8 @@ class _SessionManager extends _ApiCore {
      */
 
     async save(session) {
-        const url = this.path + "/save_session/" + session
-        return await this._basicFetch(url, 'GET').json()
+        const url = this.path + "/save/" + session
+        return await this._basicFetch(url, 'GET').then(r => r.json())
     }
 
     /**
@@ -353,7 +366,7 @@ class _SessionManager extends _ApiCore {
      */
     async rollback(session, close=true) {
         const closeStr = close ? "y" : "n"
-        const url = this.path + "/rollback_session/" + session + "?" + (new URLSearchParams({"close": closeStr})).toString()
-        return await this._basicFetch(url, 'GET').json()
+        const url = this.path + "/rollback/" + session + "?" + (new URLSearchParams({"close": closeStr})).toString()
+        return await this._basicFetch(url, 'GET').then(r => r.json())
     }
 }
