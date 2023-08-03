@@ -106,10 +106,7 @@ class _ApiCore {
         })
 
         if (data.success) {
-            console.log('success!')
-            console.log(sessionIsTemporary)
             if (sessionIsTemporary) {
-                console.log('committing session')
                 this.#session.save(session)
             }
         } else {
@@ -122,14 +119,14 @@ class _ApiCore {
 
     /**
      * Emit a HTTP request to a custom endpoint.
-     * @param {String} urlPath Remaining URL slug to send request to. Appended to `this.root`
+     * @param {String} urlPath Remaining URL slug to send request to. Appended to `this.path`
      * @param {String} session DB session ID to use. Optional.
      * @param {Object} args All arguments to pass in request (query string + body)
      * @param {String} method HTTP method to use 
      * @returns {Promise} Resolves to JSON response from API.
      */
     custom(urlPath, args={}, session=null, method='GET') {
-        const url = this.root + urlPath
+        const url = this.path + urlPath
         return this._fetchResponse(url, method, args, session)
     }
 
@@ -184,13 +181,14 @@ class ApiGeneralCollection extends _ApiCore {
     /**
      * Fetch a list of IDs for this collection.
      * @param {Object} args Model attribute values to require i.e. `{mod_val: 3}`.
+     * @param {String} session DB session ID to use. Optional.
      * @param {Number} page Page number to request. Defaults to 1.
      * @param {Number} pageLength Number of records per page. Defaults to `this.defaultPageLength`.
      * @param {String} matchText Substring to match on any model attribute (coerced to string).
      * @param {String} sortBy Model attribute to sort the results by.
      * @returns {Promise} Resolves to JSON response from API.
      */
-    listIds(args, page=1, pageLength=this.defaultPageLength, matchText, sortBy="id") {
+    listIds(args, session=null, page=1, pageLength=this.defaultPageLength, matchText, sortBy="id") {
         const url = this.path + "/"
         let queryArgs = {
                 _page: page,
@@ -214,14 +212,15 @@ class ApiGeneralCollection extends _ApiCore {
     /**
      * Fetch a list of IDs for this collection.
      * @param {Object} args Model attribute values to require i.e. `{mod_val: 3}`.
+     * @param {String} session DB session ID to use. Optional.
      * @param {Number} page Page number to request. Defaults to 1.
      * @param {Number} pageLength Number of records per page. Defaults to `this.defaultPageLength`.
      * @param {String} matchText Substring to match on any model attribute (coerced to string).
      * @param {String} sortBy Model attribute to sort the results by.
      * @returns {Promise} Resolves to JSON response from API.
      */
-    listDetails(args, page=1, pageLength=this.defaultPageLength, matchText, sortBy="id") {
-        const url = this.root + '/details'
+    listDetails(args, session=null, page=1, pageLength=this.defaultPageLength, matchText, sortBy="id") {
+        const url = this.path + '/details'
         let queryArgs = {
                 _page: page,
                 _pagelength: pageLength,
@@ -248,7 +247,7 @@ class ApiGeneralCollection extends _ApiCore {
      * @returns {Promise} Resolves to JSON response from API.
      */
     create(args, session=null) {
-        const url = this.root + "/"
+        const url = this.path + "/"
         return this._fetchResponse(url, 'POST', args, session)
     }
 
@@ -262,7 +261,7 @@ class ApiGeneralCollection extends _ApiCore {
         if (!id) {
             throw new Error('ID required')
         }
-        const url = this.root + `/${id}`
+        const url = this.path + `/${id}`
         return this._fetchResponse(url, 'GET', {}, session)
     }
 
@@ -274,7 +273,7 @@ class ApiGeneralCollection extends _ApiCore {
      * @returns {Promise} Resolves to JSON response from API.
      */
     update(id, args, session=null) {
-        const url = this.root + `/${id}`
+        const url = this.path + `/${id}`
         return this._fetchResponse(url, 'POST', args, session)
     }
 
@@ -285,8 +284,8 @@ class ApiGeneralCollection extends _ApiCore {
      * @returns {Promise} Resolves to JSON response from API.
      */
     delete(id, session) {
-        const url = this.root + `/${id}`
-        return this._fetchResponse(url, 'POST', args, session)
+        const url = this.path + `/${id}`
+        return this._fetchResponse(url, 'DELETE', session)
     }
 }
 
@@ -308,7 +307,7 @@ class Api extends _ApiCore {
     /**
      * Register a generic collection of API endpoints.
      * @param {String} moduleName Valid attribute name to save this module under. Must not already be registered on this API.
-     * @param {String} urlPath Remaining URL slug to append to `this.root`.
+     * @param {String} urlPath Remaining URL slug to append to `this.path`.
      */
     addGeneralModule(moduleName, urlPath=null) {
         if (!urlPath) {
@@ -352,7 +351,6 @@ class _SessionManager extends _ApiCore {
      * @param {String} session ID of DB session to rollback.
      * @returns {Object} API response outlining DB session closure.
      */
-
     async save(session) {
         const url = this.path + "/save/" + session
         return await this._basicFetch(url, 'GET').then(r => r.json())
