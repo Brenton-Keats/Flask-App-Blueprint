@@ -122,7 +122,7 @@ class _ApiCore {
      * @param {String} urlPath Remaining URL slug to send request to. Appended to `this.path`
      * @param {String} session DB session ID to use. Optional.
      * @param {Object} args All arguments to pass in request (query string + body)
-     * @param {String} method HTTP method to use 
+     * @param {String} method HTTP method to use.
      * @returns {Promise} Resolves to JSON response from API.
      */
     custom(urlPath, args={}, session=null, method='GET') {
@@ -131,25 +131,60 @@ class _ApiCore {
     }
 
     /**
-     * Register a submodule.
-     * @param {String} name Valid attribute name to register this module under. Must not already be registered.
-     * @param {_ApiCore} newModule Object with methods.
+     * Add a resource to this API module.
+     * @param {String} name Valid attribute name to register this resource under. Must not already be registered.
+     * @param {CallableFunction | _ApiCore} resource Callable method, or API submodule.
      */
-    addModule(name, newModule) {
-        if (!(
-                newModule.prototype instanceof _ApiCore  // Is subclass of...
-                || newModule instanceof _ApiCore         // Is instance of...
-            )) {
-            throw new TypeError("Module must extend _ApiCore")
-        }
+    _addResource(name, resource) {
         if (name.includes(" ")) {
             throw new Error(`Passed value "${moduleName}" is not valid`)
         }
         if (this[name]) {
             throw new Error(`An attribute with name "${name}" already exists for this API module.`)
         }
-        this[name] = newModule
+        this[name] = resource
+    }
+
+    /**
+     * Register a submodule.
+     * @param {String} name Valid attribute name to register this module under. Must not already be registered.
+     * @param {_ApiCore} newModule Object with methods.
+     */
+    addCustomModule(name, newModule) {
+        if (!(
+                newModule.prototype instanceof _ApiCore  // Is subclass of...
+                || newModule instanceof _ApiCore         // Is instance of...
+            )) {
+            throw new TypeError("Module must extend _ApiCore")
+        }
+        this._addResource(name, newModule)
         this.actions[name] = `${newModule.path}/...`
+    }
+
+    /**
+     * Register a single endpoint on this module.
+     * @param {String} name Valid attribute name to register this endpoint under. Must not already be registered.
+     * @param {String} path Remaining URL slug to use. Optional, defaults to `/${name}`
+     * @param {String} method HTTP method to use.
+     */
+    addEndpoint(name, path=null, method="GET") {
+        if (!path) {
+            path = "/" + name
+        }
+        const url = this.path + path
+        const parent = this
+        /**
+         * Emit a HTTP request to this endpoint.
+         * @param {Object} args Parameters to pass to the endpoint.
+         * @param {String} session DB session ID to use. Optional.
+         * @returns {Promise} Resolves to JSON response from API.
+         */
+        function ApiEndpoint(args={}, session=null) {
+            return parent._fetchResponse(url, method, args, session)
+        }
+
+        this._addResource(name, ApiEndpoint)
+        this.actions[name] = url
     }
 }
 
@@ -315,7 +350,7 @@ class Api extends _ApiCore {
         };
         urlPath = this.path + encodeURI(urlPath);
         const newModule = new ApiGeneralCollection(urlPath, this._getSessionManager());
-        this.addModule(moduleName, newModule);
+        this.addCustomModule(moduleName, newModule);
     }
 }
 
